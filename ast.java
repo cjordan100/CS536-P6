@@ -133,6 +133,9 @@ class ProgramNode extends ASTnode {
     public void nameAnalysis() {
         SymTable symTab = new SymTable();
         myDeclList.nameAnalysis(symTab);
+		if(!myDeclList.hasMainFunction()) {
+			ErrMsg.fatal(0, 0, "No main function");
+		}
     }
     
     /**
@@ -183,24 +186,20 @@ class DeclListNode extends ASTnode {
      * typeCheck
      */
     public void typeCheck() {
-
-        // This block checks if the program contains a "main" function
-        boolean containsMainFunc = false;
-        for (DeclNode node : myDecls) {
-            if ((node instanceof FnDeclNode) && ((FnDeclNode)node).getId().name().equals("main")) {
-                containsMainFunc = true;
-                break;
-            }
-	}
-        if (containsMainFunc == false) {
-            ErrMsg.fatal(0,0, "No main function");
-        }
-
         for (DeclNode node : myDecls) {
             node.typeCheck();
         }
     }
-    
+
+    public boolean hasMainFunction() {
+		for (DeclNode node : myDecls) {
+			if ((node instanceof FnDeclNode) && ((FnDeclNode)node).getId().name().equals("main")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
     public void unparse(PrintWriter p, int indent) {
         Iterator it = myDecls.iterator();
         try {
@@ -562,7 +561,7 @@ class FnDeclNode extends DeclNode {
 
         // This line calculates the size of the formals in the function
         // and stores the value in the sym for the function
-        sym.setFormalSize(typeList.length() * 4);  
+        //sym.setFormalSize(typeList.length() * 4);  
 
         myBody.nameAnalysis(symTab); // process the function body
         

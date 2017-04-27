@@ -32,6 +32,7 @@ class FnSym extends SemSym {
     private List<Type> paramTypes;
     int offset;
     int formalSize;
+
     public FnSym(Type type, int numparams) {
         super(new FnType());
         returnType = type;
