@@ -30,7 +30,8 @@ class FnSym extends SemSym {
     private Type returnType;
     private int numParams;
     private List<Type> paramTypes;
-    
+    int offset;
+    int formalSize;
     public FnSym(Type type, int numparams) {
         super(new FnType());
         returnType = type;
@@ -51,6 +52,14 @@ class FnSym extends SemSym {
 
     public List<Type> getParamTypes() {
         return paramTypes;
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+
+    public void setFormalSize(int formalSize) {
+        this.formalSize = formalSize;
     }
 
     public String toString() {

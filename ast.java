@@ -183,6 +183,19 @@ class DeclListNode extends ASTnode {
      * typeCheck
      */
     public void typeCheck() {
+
+        // This block checks if the program contains a "main" function
+        boolean containsMainFunc = false;
+        for (DeclNode node : myDecls) {
+            if ((node instanceof FnDeclNode) && ((FnDeclNode)node).getId().name().equals("main")) {
+                containsMainFunc = true;
+                break;
+            }
+	}
+        if (containsMainFunc == false) {
+            ErrMsg.fatal(0,0, "No main function");
+        }
+
         for (DeclNode node : myDecls) {
             node.typeCheck();
         }
@@ -546,7 +559,11 @@ class FnDeclNode extends DeclNode {
         if (sym != null) {
             sym.addFormals(typeList);
         }
-        
+
+        // This line calculates the size of the formals in the function
+        // and stores the value in the sym for the function
+        sym.setFormalSize(typeList.length() * 4);  
+
         myBody.nameAnalysis(symTab); // process the function body
         
         try {
@@ -565,6 +582,10 @@ class FnDeclNode extends DeclNode {
      */
     public void typeCheck() {
         myBody.typeCheck(myType.type());
+    }
+
+    public IdNode getId() {
+        return myId;
     }
         
     public void unparse(PrintWriter p, int indent) {
