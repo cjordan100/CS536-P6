@@ -6,9 +6,18 @@ import java.util.*;
  */
 public class SemSym {
     private Type type;
-    
+    private int offset;
+
     public SemSym(Type type) {
         this.type = type;
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+
+    public int getOffset() {
+        return offset;
     }
     
     public Type getType() {
@@ -30,7 +39,7 @@ class FnSym extends SemSym {
     private Type returnType;
     private int numParams;
     private List<Type> paramTypes;
-    int offset;
+    int localSize;
     int formalSize;
 
     public FnSym(Type type, int numparams) {
@@ -55,8 +64,8 @@ class FnSym extends SemSym {
         return paramTypes;
     }
 
-    public void setOffset(int offset) {
-        this.offset = offset;
+    public void setLocalSize(int localSize) {
+        this.localSize = localSize;
     }
 
     public void setFormalSize(int formalSize) {
@@ -108,11 +117,20 @@ class StructSym extends SemSym {
  */
 class StructDefSym extends SemSym {
     // new fields
+    private int size;
     private SymTable symTab;
     
     public StructDefSym(SymTable table) {
         super(new StructDefType());
         symTab = table;
+    }
+
+    public int getSize() {
+        return this.size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
     }
 
     public SymTable getSymTable() {

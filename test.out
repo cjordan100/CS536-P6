@@ -1,0 +1,26 @@
+struct Node{
+    int x;
+    bool y;
+};
+
+struct Ham{
+    int c;
+    bool r;
+    struct Node t;
+};
+
+void foo(int x) {
+    int r;
+    struct Node n;
+    n(Node).x(int) = x(int);
+    n(Node).y(bool) = false;
+}
+
+int main() {
+    int a;
+    struct Ham d;
+    a(int) = 1;
+    foo(int->void)(a(int));
+    return a(int);
+}
+

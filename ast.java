@@ -133,9 +133,11 @@ class ProgramNode extends ASTnode {
     public void nameAnalysis() {
         SymTable symTab = new SymTable();
         myDeclList.nameAnalysis(symTab);
-		if(!myDeclList.hasMainFunction()) {
-			ErrMsg.fatal(0, 0, "No main function");
-		}
+        // This statement calls function in declList to test that the program
+        // has a function called main
+        if(!myDeclList.hasMainFunction()) {
+            ErrMsg.fatal(0, 0, "No main function");
+        }
     }
     
     /**
@@ -191,14 +193,24 @@ class DeclListNode extends ASTnode {
         }
     }
 
+    public int getSize() {
+        int size = 0;
+        for (DeclNode node : myDecls) {
+            size += ((VarDeclNode)node).getSize();
+        }
+        return size;
+    }
+
+    // This function checks to make sure the declList contains a main function
     public boolean hasMainFunction() {
-		for (DeclNode node : myDecls) {
-			if ((node instanceof FnDeclNode) && ((FnDeclNode)node).getId().name().equals("main")) {
-				return true;
-			}
-		}
-		return false;
-	}
+        for (DeclNode node : myDecls) {
+            if ((node instanceof FnDeclNode) && 
+                ((FnDeclNode)node).getId().name().equals("main")) {
+                return true;
+            }
+        }
+            return false;
+    }
 
     public void unparse(PrintWriter p, int indent) {
         Iterator it = myDecls.iterator();
@@ -276,7 +288,11 @@ class FnBodyNode extends ASTnode {
     public void nameAnalysis(SymTable symTab) {
         myDeclList.nameAnalysis(symTab);
         myStmtList.nameAnalysis(symTab);
-    }    
+    }
+
+    public int getSize() {
+        return myDeclList.getSize();
+    }
  
     /**
      * typeCheck
@@ -433,6 +449,7 @@ class VarDeclNode extends DeclNode {
         String name = myId.name();
         SemSym sym = null;
         IdNode structId = null;
+        mySize = 4;
 
         if (myType instanceof VoidNode) {  // check for void type
             ErrMsg.fatal(myId.lineNum(), myId.charNum(), 
@@ -453,6 +470,7 @@ class VarDeclNode extends DeclNode {
             }
             else {
                 structId.link(sym);
+                mySize = ((StructDefSym)sym).getSize();
             }
         }
         
@@ -482,9 +500,12 @@ class VarDeclNode extends DeclNode {
                 System.exit(-1);
             }
         }
-        
         return sym;
     }    
+
+    public int getSize() {
+        return mySize;
+    }
     
     public void unparse(PrintWriter p, int indent) {
         doIndent(p, indent);
@@ -559,12 +580,15 @@ class FnDeclNode extends DeclNode {
             sym.addFormals(typeList);
         }
 
+        myBody.nameAnalysis(symTab); // process the function body
+
         // This line calculates the size of the formals in the function
         // and stores the value in the sym for the function
-        //sym.setFormalSize(typeList.length() * 4);  
+        sym.setFormalSize(typeList.size() * 4);  
 
-        myBody.nameAnalysis(symTab); // process the function body
-        
+        // This line sets the offset for the function
+        sym.setLocalSize(myBody.getSize());
+
         try {
             symTab.removeScope();  // exit scope
         } catch (EmptySymTableException ex) {
@@ -572,10 +596,9 @@ class FnDeclNode extends DeclNode {
                                " in FnDeclNode.nameAnalysis");
             System.exit(-1);
         }
-        
         return null;
     } 
-       
+
     /**
      * typeCheck
      */
@@ -586,7 +609,7 @@ class FnDeclNode extends DeclNode {
     public IdNode getId() {
         return myId;
     }
-        
+
     public void unparse(PrintWriter p, int indent) {
         doIndent(p, indent);
         myType.unparse(p, 0);
@@ -697,10 +720,11 @@ class StructDeclNode extends DeclNode {
         
         // process the fields of the struct
         myDeclList.nameAnalysis(structSymTab, symTab);
-        
+
         if (!badDecl) {
             try {   // add entry to symbol table
                 StructDefSym sym = new StructDefSym(structSymTab);
+                sym.setSize(myDeclList.getSize());  // This stores the size of the struct in the sym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 symTab.addDecl(name, sym);
                 myId.link(sym);
             } catch (DuplicateSymException ex) {
@@ -715,8 +739,8 @@ class StructDeclNode extends DeclNode {
         }
         
         return null;
-    }    
-    
+    }
+
     public void unparse(PrintWriter p, int indent) {
         doIndent(p, indent);
         p.print("struct ");
@@ -988,7 +1012,7 @@ class WriteStmtNode extends StmtNode {
      */
     public void typeCheck(Type retType) {
         Type type = myExp.typeCheck();
-        
+        expType = type;
         if (type.isFnType()) {
             ErrMsg.fatal(myExp.lineNum(), myExp.charNum(),
                          "Attempt to write a function");
@@ -1019,6 +1043,7 @@ class WriteStmtNode extends StmtNode {
 
     // 1 kid
     private ExpNode myExp;
+    private Type expType;
 }
 
 class IfStmtNode extends StmtNode {
