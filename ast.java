@@ -664,6 +664,8 @@ class FnDeclNode extends DeclNode {
     }
 
     public void codeGen() {
+
+		// function entry
         if(myId.name().equals("main")) {
             Codegen.generate(".text");
             Codegen.generate(".globl main");
@@ -681,7 +683,15 @@ class FnDeclNode extends DeclNode {
        if (localSize > 0)
            Codegen.generate("subu", Codegen.SP, Codegen.SP, String.valueOf(localSize));
 
+       // function body
        myBody.codeGen();
+
+	   // function exit
+	   Codegen.generateIndexed("lw", Codegen.RA, Codegen.FP, 0, "load return address");
+	   Codegen.generateWithComment("move", "FP holds the address to which we need to restore SP", Codegen.T0, Codegen.FP);
+	   Codegen.generateIndexed("lw", Codegen.FP, Codegen.FP, -4, "restore FP");
+	   Codegen.generateWithComment("move", "restore SP", Codegen.SP, Codegen.FP);
+	   Codegen.generateWithComment("jr", "return", Codegen.RA);
    }
 
     public IdNode getId() {
@@ -1130,7 +1140,15 @@ class WriteStmtNode extends StmtNode {
     }
  
     public void codeGen() {
+        myExp.codeGen();
+		Codegen.genPop(Codegen.A0);
 
+		if(myExp instanceof IntLitNode)
+			Codegen.generate("li", Codegen.V0, 1);
+		else if(myExp instanceof StringLitNode)
+			Codegen.generate("li", Codegen.V0, 4);
+
+		Codegen.generate("syscall");
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1468,6 +1486,7 @@ abstract class ExpNode extends ASTnode {
     public void nameAnalysis(SymTable symTab) { }
     
     abstract public Type typeCheck();
+    abstract public void codeGen();
     abstract public int lineNum();
     abstract public int charNum();
 }
@@ -1544,7 +1563,12 @@ class StringLitNode extends ExpNode {
  
     public void codeGen() {
         Codegen.generate(".data");
-        Codegen.generateLabeled(Codegen.nextLabel(), ".asciiz", "", myStrVal);
+		String label = Codegen.nextLabel();
+        Codegen.generateLabeled(label, ".asciiz ", "", myStrVal);
+
+        Codegen.generate(".text");
+        Codegen.generate("la", Codegen.T0, label);
+		Codegen.genPush(Codegen.T0);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -2068,6 +2092,10 @@ abstract class UnaryExpNode extends ExpNode {
     public void nameAnalysis(SymTable symTab) {
         myExp.nameAnalysis(symTab);
     }
+
+	public void codeGen() {
+
+	}
     
     // one child
     protected ExpNode myExp;
@@ -2104,6 +2132,10 @@ abstract class BinaryExpNode extends ExpNode {
         myExp1.nameAnalysis(symTab);
         myExp2.nameAnalysis(symTab);
     }
+
+	public void codeGen() {
+
+	}
     
     // two kids
     protected ExpNode myExp1;

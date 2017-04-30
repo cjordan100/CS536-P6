@@ -1,10 +1,3 @@
-	.text
-_foo:	
-	sw    $ra, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	sw    $fp, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	addu  $fp, $sp, 8
 	.data
 	.align 2
 _x:	.space 4
@@ -19,3 +12,28 @@ main:
 	sw    $fp, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	addu  $fp, $sp, 8
+	.data
+.L0:	.asciiz "hello "
+	.text
+	la    $t0, .L0
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $a0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	li    $v0, 4
+	syscall
+	.data
+.L1:	.asciiz "world"
+	.text
+	la    $t0, .L1
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $a0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	li    $v0, 4
+	syscall
+	lw    $ra, 0($fp)	#load return address
+	move  $t0, $fp		#FP holds the address to which we need to restore SP
+	lw    $fp, -4($fp)	#restore FP
+	move  $sp, $fp		#restore SP
+	jr    $ra		#return
