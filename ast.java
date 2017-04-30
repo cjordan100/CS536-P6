@@ -1501,7 +1501,8 @@ class IntLitNode extends ExpNode {
     }
  
     public void codeGen() {
-
+        Codegen.generate("li", Codegen.T0, String.valueOf(myIntVal));
+        Codegen.genPush(Codegen.T0);
     }
     
     public void unparse(PrintWriter p, int indent) {
@@ -1542,7 +1543,8 @@ class StringLitNode extends ExpNode {
     }
  
     public void codeGen() {
-
+        Codegen.generate(".data");
+        Codegen.generateLabeled(Codegen.nextLabel(), ".asciiz", "", myStrVal);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1582,7 +1584,8 @@ class TrueNode extends ExpNode {
     }
  
     public void codeGen() {
-
+        Codegen.generate("li", Codegen.T0, String.valueOf(1));
+        Codegen.genPush(Codegen.T0);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1621,7 +1624,8 @@ class FalseNode extends ExpNode {
     }
  
     public void codeGen() {
-
+        Codegen.generate("li", Codegen.T0, String.valueOf(0));
+        Codegen.genPush(Codegen.T0);
     }
         
     public void unparse(PrintWriter p, int indent) {
