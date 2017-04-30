@@ -3,23 +3,23 @@ struct Node {
 	bool y;
 };
 
-struct Ham {
-        int c;
-        bool r;
-        struct Node t;
-};
+//struct Ham {
+//        int c;
+//        bool r;
+//        struct Node t;
+//};
 
-void foo(int x) {
-        int r;
-	struct Node n;
-	n.x = x;
-	n.y = false;
-}
+//void foo(int x) {
+//      int r;
+//	struct Node n;
+//	bool b;
+//	n.x = x;
+//	n.y = false;
+//}
 
-int main() {
-	int a;
-        struct Ham d;
-	a = 1;
-	foo(a);
-	return a;
+int x;
+bool t;
+
+void main() {
+//    int a;
 }

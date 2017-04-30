@@ -146,7 +146,8 @@ public class P6 {
 		
 		astRoot.typeCheck();
 		
-		astRoot.unparse(outFile, 0);
+		//astRoot.unparse(outFile, 0);
+                astRoot.codeGen();
 		return P6.RESULT_CORRECT;
 	}
 	
@@ -199,7 +200,7 @@ public class P6 {
 	
     public static void main(String[] args){
         try {
-        Codegen.p = new PrintWriter(args[1]);
+            Codegen.p = new PrintWriter(args[1]);
         } catch(FileNotFoundException e) {
             // NEED TO THROW AN ERROR OR SOMETHING AHHHHHHHHHHHHH
         }

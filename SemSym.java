@@ -68,6 +68,10 @@ class FnSym extends SemSym {
         this.localSize = localSize;
     }
 
+    public int getLocalSize() {
+        return this.localSize;
+    }
+
     public void setFormalSize(int formalSize) {
         this.formalSize = formalSize;
     }
