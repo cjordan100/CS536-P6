@@ -1004,7 +1004,16 @@ class PostIncStmtNode extends StmtNode {
     }
  
     public void codeGen() {
+		myExp.codeGen();
 
+		// get the value from the top of the stack
+		Codegen.genPop(Codegen.T0);
+
+		// perform the operation
+		Codegen.generate("addi", Codegen.T0, Codegen.T0, "1");
+
+		// push result onto the stack
+		Codegen.genPush(Codegen.T0);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1043,7 +1052,19 @@ class PostDecStmtNode extends StmtNode {
     }
  
     public void codeGen() {
+		myExp.codeGen();
 
+		// get the value from the top of the stack
+		Codegen.genPop(Codegen.T0);
+
+        // store 1 in register $t0
+		Codegen.generate("li", Codegen.T1, "1");
+
+		// perform the operation
+		Codegen.generate("sub", Codegen.T0, Codegen.T0, Codegen.T1);
+
+		// push result onto the stack
+		Codegen.genPush(Codegen.T0);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1092,7 +1113,15 @@ class ReadStmtNode extends StmtNode {
     }
  
     public void codeGen() {
+		Codegen.generate("li", Codegen.V0, 5);
+		Codegen.generateWithComment("syscall", "Read");
+		Codegen.genPush(Codegen.V0);
 
+		myExp.genAddr(); // push the address of the Id onto the stack
+		Codegen.genPop(Codegen.T0);
+
+		// store the value into the address
+        Codegen.generateIndexed("sw", Codegen.V0, Codegen.T0, 0);
     }
     
     public void unparse(PrintWriter p, int indent) {
@@ -1155,7 +1184,7 @@ class WriteStmtNode extends StmtNode {
 		else if(expType.isStringType())
 			Codegen.generate("li", Codegen.V0, 4);
 
-		Codegen.generate("syscall");
+		Codegen.generateWithComment("syscall", "Write");
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1214,7 +1243,12 @@ class IfStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-
+		String falseLabel = Codegen.nextLabel();
+		myExp.codeGen();
+		Codegen.genPop(Codegen.T0);
+		Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
+		myStmtList.codeGen();
+		Codegen.genLabel(falseLabel);
     }
        
     public void unparse(PrintWriter p, int indent) {
@@ -1296,7 +1330,16 @@ class IfElseStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-
+		String falseLabel = Codegen.nextLabel();
+		String trueLabel = Codegen.nextLabel();
+		myExp.codeGen();
+		Codegen.genPop(Codegen.T0);
+		Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
+		myThenStmtList.codeGen();
+		Codegen.generate("b", trueLabel);
+		Codegen.genLabel(falseLabel);
+		myElseStmtList.codeGen();
+		Codegen.genLabel(trueLabel);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1368,7 +1411,15 @@ class WhileStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-
+		String loopLabel = Codegen.nextLabel();
+		String doneLabel = Codegen.nextLabel();
+		Codegen.genLabel(loopLabel);
+		myExp.codeGen();
+		Codegen.genPop(Codegen.T0);
+		Codegen.generate("beq", Codegen.T0, Codegen.FALSE, doneLabel);
+		myStmtList.codeGen();
+		Codegen.generate("b", loopLabel);
+		Codegen.genLabel(doneLabel);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -2001,14 +2052,12 @@ class AssignNode extends ExpNode {
     }
  
     public void codeGen() {
-		System.out.println("AssignNode.codeGen");
 		myExp.codeGen(); // evaluate the rhs expression. leaving the value on the stack
 		myLhs.genAddr(); // push the address of the lhs Id onto the stack
 		Codegen.genPop(Codegen.T0);
-		Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
 		// store the value into the address
+		Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
         Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0);
-
     }
 
 	public void genAddr() {
@@ -2190,11 +2239,85 @@ abstract class BinaryExpNode extends ExpNode {
 
 	public void codeGen() {
 
+		/*
+		 * Short-Curcutied Operators
+		 */
+
+		if(this instanceof AndNode) {
+			String falseLabel = Codegen.nextLabel();
+			String trueLabel = Codegen.nextLabel();
+
+			// (1) evalute left operand
+			myExp1.codeGen();
+			Codegen.genPop(Codegen.T0);
+			Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
+
+			// (2) if true evalute right operand = whole expression's value
+			myExp1.codeGen();
+			Codegen.genPop(Codegen.T0);
+			Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
+			Codegen.generate("sw", Codegen.T0, Codegen.TRUE);
+			Codegen.genPush(Codegen.T0);
+			Codegen.generate("b", trueLabel);
+
+			// else whole expression is false
+			Codegen.genLabel(falseLabel);
+			Codegen.generate("sw", Codegen.T0, Codegen.FALSE);
+			Codegen.genPush(Codegen.T0);
+			Codegen.genLabel(trueLabel);
+		}
+
+		else if(this instanceof OrNode) {
+			String falseLabel = Codegen.nextLabel();
+			String trueLabel = Codegen.nextLabel();
+
+			// (1) evalute left operand
+			myExp1.codeGen();
+			Codegen.genPop(Codegen.T0);
+			Codegen.generate("beq", Codegen.T0, Codegen.TRUE, trueLabel);
+
+			// (2) if false evalute right operand = whole expression's value
+			myExp1.codeGen();
+			Codegen.genPop(Codegen.T0);
+			Codegen.generate("beq", Codegen.T0, Codegen.TRUE, trueLabel);
+			Codegen.generate("sw", Codegen.T0, Codegen.FALSE);
+			Codegen.genPush(Codegen.T0);
+			Codegen.generate("b", falseLabel);
+
+			// else whole expression is true
+			Codegen.genLabel(trueLabel);
+			Codegen.generate("sw", Codegen.T0, Codegen.TRUE);
+			Codegen.genPush(Codegen.T0);
+			Codegen.genLabel(falseLabel);
+		}
+
+		/*
+		 * Non Short-Curcutied Operators
+		 */
+
+		else {
+			// (1) evaluate the operands leaving the values on the stack
+			myExp1.codeGen();
+			myExp2.codeGen();
+
+			// (2) generate code to opo the operand values off the stack
+			// into registor T0 and T1, right operand is on the top of the stack
+			Codegen.genPop(Codegen.T1);
+			Codegen.genPop(Codegen.T0);
+
+			// (3) perform the operation
+			Codegen.generate(opCode(), Codegen.T0, Codegen.T0, Codegen.T1);
+
+			// (4) push result onto the stack
+			Codegen.genPush(Codegen.T0);
+		}
 	}
     
 	public void genAddr() {
 
 	}
+
+	abstract public String opCode();
 
     // two kids
     protected ExpNode myExp1;
@@ -2435,6 +2558,10 @@ class PlusNode extends ArithmeticExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "addu";
+	}
 }
 
 class MinusNode extends ArithmeticExpNode {
@@ -2449,6 +2576,10 @@ class MinusNode extends ArithmeticExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "subu";
+	}
 }
 
 class TimesNode extends ArithmeticExpNode {
@@ -2464,6 +2595,10 @@ class TimesNode extends ArithmeticExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "mul";
+	}
 }
 
 class DivideNode extends ArithmeticExpNode {
@@ -2478,6 +2613,10 @@ class DivideNode extends ArithmeticExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "divu";
+	}
 }
 
 class AndNode extends LogicalExpNode {
@@ -2492,6 +2631,10 @@ class AndNode extends LogicalExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "and";
+	}
 }
 
 class OrNode extends LogicalExpNode {
@@ -2506,6 +2649,10 @@ class OrNode extends LogicalExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "or";
+	}
 }
 
 class EqualsNode extends EqualityExpNode {
@@ -2520,6 +2667,10 @@ class EqualsNode extends EqualityExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "seq";
+	}
 }
 
 class NotEqualsNode extends EqualityExpNode {
@@ -2534,6 +2685,10 @@ class NotEqualsNode extends EqualityExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "sne";
+	}
 }
 
 class LessNode extends RelationalExpNode {
@@ -2548,6 +2703,10 @@ class LessNode extends RelationalExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "slt";
+	}
 }
 
 class GreaterNode extends RelationalExpNode {
@@ -2562,6 +2721,10 @@ class GreaterNode extends RelationalExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "sgt";
+	}
 }
 
 class LessEqNode extends RelationalExpNode {
@@ -2576,6 +2739,10 @@ class LessEqNode extends RelationalExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "sle";
+	}
 }
 
 class GreaterEqNode extends RelationalExpNode {
@@ -2590,4 +2757,8 @@ class GreaterEqNode extends RelationalExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+	public String opCode() {
+		return "sge";
+	}
 }
