@@ -1,7 +1,6 @@
-int x;
-bool t;
-
 void main() {
-	cout << "hello ";
-	cout << "world";
+	int x;
+	x = 100;
+	cout << x;
+	cout << "\n";
 }

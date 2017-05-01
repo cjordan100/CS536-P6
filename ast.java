@@ -670,6 +670,9 @@ class FnDeclNode extends DeclNode {
             Codegen.generate(".text");
             Codegen.generate(".globl main");
             Codegen.generateLabeled("main", "", "");
+
+			// for spim
+            //Codegen.generateLabeled("__start", "", "");
         }
          else {
             Codegen.generate(".text");
@@ -691,7 +694,11 @@ class FnDeclNode extends DeclNode {
 	   Codegen.generateWithComment("move", "FP holds the address to which we need to restore SP", Codegen.T0, Codegen.FP);
 	   Codegen.generateIndexed("lw", Codegen.FP, Codegen.FP, -4, "restore FP");
 	   Codegen.generateWithComment("move", "restore SP", Codegen.SP, Codegen.FP);
-	   Codegen.generateWithComment("jr", "return", Codegen.RA);
+	   //Codegen.generateWithComment("jr", "return", Codegen.RA);
+
+	   // for spim
+	   Codegen.generate("li", Codegen.V0, "10");
+	   Codegen.generate("syscall");
    }
 
     public IdNode getId() {
@@ -958,7 +965,7 @@ class AssignStmtNode extends StmtNode {
     }
 
     public void codeGen() {
-
+		myAssign.codeGen();
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1143,9 +1150,9 @@ class WriteStmtNode extends StmtNode {
         myExp.codeGen();
 		Codegen.genPop(Codegen.A0);
 
-		if(myExp instanceof IntLitNode)
+		if(expType.isIntType() || expType.isBoolType())
 			Codegen.generate("li", Codegen.V0, 1);
-		else if(myExp instanceof StringLitNode)
+		else if(expType.isStringType())
 			Codegen.generate("li", Codegen.V0, 4);
 
 		Codegen.generate("syscall");
@@ -1487,6 +1494,7 @@ abstract class ExpNode extends ASTnode {
     
     abstract public Type typeCheck();
     abstract public void codeGen();
+    abstract public void genAddr();
     abstract public int lineNum();
     abstract public int charNum();
 }
@@ -1524,6 +1532,10 @@ class IntLitNode extends ExpNode {
         Codegen.genPush(Codegen.T0);
     }
     
+	public void genAddr() {
+
+	}
+
     public void unparse(PrintWriter p, int indent) {
         p.print(myIntVal);
     }
@@ -1571,6 +1583,10 @@ class StringLitNode extends ExpNode {
 		Codegen.genPush(Codegen.T0);
     }
         
+	public void genAddr() {
+
+	}
+
     public void unparse(PrintWriter p, int indent) {
         p.print(myStrVal);
     }
@@ -1607,6 +1623,10 @@ class TrueNode extends ExpNode {
         return new BoolType();
     }
  
+	public void genAddr() {
+
+	}
+
     public void codeGen() {
         Codegen.generate("li", Codegen.T0, String.valueOf(1));
         Codegen.genPush(Codegen.T0);
@@ -1652,6 +1672,10 @@ class FalseNode extends ExpNode {
         Codegen.genPush(Codegen.T0);
     }
         
+	public void genAddr() {
+
+	}
+
     public void unparse(PrintWriter p, int indent) {
         p.print("false");
     }
@@ -1732,9 +1756,17 @@ class IdNode extends ExpNode {
     }
  
     public void codeGen() {
-
+		
     }
            
+	public void genAddr() {
+		if(mySym.getOffset() == 0) // global
+			Codegen.generate("la", Codegen.T0, "_"+myStrVal);
+		else // local
+			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, mySym.getOffset());
+		Codegen.genPush(Codegen.T0);
+	}
+
     public void unparse(PrintWriter p, int indent) {
         p.print(myStrVal);
         if (mySym != null) {
@@ -1884,6 +1916,10 @@ class DotAccessExpNode extends ExpNode {
 
     }
     
+	public void genAddr() {
+
+	}
+
     public void unparse(PrintWriter p, int indent) {
         myLoc.unparse(p, 0);
         p.print(".");
@@ -1965,8 +2001,19 @@ class AssignNode extends ExpNode {
     }
  
     public void codeGen() {
+		System.out.println("AssignNode.codeGen");
+		myExp.codeGen(); // evaluate the rhs expression. leaving the value on the stack
+		myLhs.genAddr(); // push the address of the lhs Id onto the stack
+		Codegen.genPop(Codegen.T0);
+		Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
+		// store the value into the address
+        Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0);
 
     }
+
+	public void genAddr() {
+
+	}
     
     public void unparse(PrintWriter p, int indent) {
         if (indent != -1)  p.print("(");
@@ -2049,6 +2096,10 @@ class CallExpNode extends ExpNode {
 
     }
         
+	public void genAddr() {
+
+	}
+
     // ** unparse **
     public void unparse(PrintWriter p, int indent) {
         myId.unparse(p, 0);
@@ -2097,6 +2148,10 @@ abstract class UnaryExpNode extends ExpNode {
 
 	}
     
+	public void genAddr() {
+
+	}
+
     // one child
     protected ExpNode myExp;
 }
@@ -2137,6 +2192,10 @@ abstract class BinaryExpNode extends ExpNode {
 
 	}
     
+	public void genAddr() {
+
+	}
+
     // two kids
     protected ExpNode myExp1;
     protected ExpNode myExp2;
