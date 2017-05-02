@@ -1004,16 +1004,20 @@ class PostIncStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-		myExp.codeGen();
 
-		// get the value from the top of the stack
-		Codegen.genPop(Codegen.T0);
+        myExp.codeGen(); // Pushes the value of myExp onto stack
 
-		// perform the operation
-		Codegen.generate("addi", Codegen.T0, Codegen.T0, "1");
+        Codegen.genPop(Codegen.T0); // Stores value of myExp into register T0
 
-		// push result onto the stack
-		Codegen.genPush(Codegen.T0);
+        myExp.genAddr(); // Pushes the address of my Exp onto stack
+
+        Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
+
+        Codegen.generate("addi", Codegen.T0, Codegen.T0, "1"); // Performs addition operation
+
+        Codegen.generateIndexed("sw", Codegen.T0, Codegen.T1, 0);
+
+        Codegen.genPush(Codegen.T0); // Pushes new value of myExp to stack
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1807,7 +1811,14 @@ class IdNode extends ExpNode {
     }
  
     public void codeGen() {
-		
+        genAddr(); // Pushes the address of ID onto the stack
+
+        Codegen.genPop(Codegen.T0); // Stores the address into T0
+
+        Codegen.generateIndexed("lw", Codegen.T1, Codegen.T0, 0); // Stores the value at address into T1
+
+        Codegen.genPush(Codegen.T1); // Pushes the value of the ID onto stack
+
     }
            
 	public void genAddr() {
@@ -2052,12 +2063,16 @@ class AssignNode extends ExpNode {
     }
  
     public void codeGen() {
-		myExp.codeGen(); // evaluate the rhs expression. leaving the value on the stack
-		myLhs.genAddr(); // push the address of the lhs Id onto the stack
-		Codegen.genPop(Codegen.T0);
-		// store the value into the address
-		Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
-        Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0);
+
+        myExp.codeGen(); // evaluate the rhs expression. leaving the value on the stack
+
+        myLhs.genAddr(); // push the address of the lhs Id onto the stack
+
+        Codegen.genPop(Codegen.T0);
+
+        Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); // Store the value of myExp into T1
+
+        Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0); // Store the value in T1 into address located in T0
     }
 
 	public void genAddr() {
@@ -2559,9 +2574,9 @@ class PlusNode extends ArithmeticExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "addu";
-	}
+    public String opCode() {
+        return "addu";
+    }
 }
 
 class MinusNode extends ArithmeticExpNode {
@@ -2577,9 +2592,9 @@ class MinusNode extends ArithmeticExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "subu";
-	}
+    public String opCode() {
+        return "subu";
+    }
 }
 
 class TimesNode extends ArithmeticExpNode {
@@ -2650,9 +2665,10 @@ class OrNode extends LogicalExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "or";
-	}
+
+    public String opCode() {
+        return "or";
+    }
 }
 
 class EqualsNode extends EqualityExpNode {
@@ -2668,9 +2684,9 @@ class EqualsNode extends EqualityExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "seq";
-	}
+    public String opCode() {
+        return "seq";
+    }
 }
 
 class NotEqualsNode extends EqualityExpNode {
@@ -2686,9 +2702,9 @@ class NotEqualsNode extends EqualityExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "sne";
-	}
+    public String opCode() {
+        return "sne";
+    }
 }
 
 class LessNode extends RelationalExpNode {
@@ -2704,9 +2720,9 @@ class LessNode extends RelationalExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "slt";
-	}
+    public String opCode() {
+        return "slt";
+    }
 }
 
 class GreaterNode extends RelationalExpNode {
@@ -2722,9 +2738,9 @@ class GreaterNode extends RelationalExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "sgt";
-	}
+    public String opCode() {
+        return "sgt";
+    }
 }
 
 class LessEqNode extends RelationalExpNode {
@@ -2740,9 +2756,9 @@ class LessEqNode extends RelationalExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "sle";
-	}
+    public String opCode() {
+        return "sle";
+    }
 }
 
 class GreaterEqNode extends RelationalExpNode {
@@ -2758,7 +2774,7 @@ class GreaterEqNode extends RelationalExpNode {
         p.print(")");
     }
 
-	public String opCode() {
-		return "sge";
-	}
+    public String opCode() {
+        return "sge";
+    }
 }
