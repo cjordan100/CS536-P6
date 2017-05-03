@@ -1,6 +1,3 @@
-	.data
-	.align 2
-_x:	.space 4
 	.text
 	.globl main
 main:	
@@ -9,136 +6,101 @@ main:
 	sw    $fp, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	addu  $fp, $sp, 8
-	li    $t0, 5
+	subu  $sp, $sp, 12
+	li    $t0, 1
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
-	la    $t0, _x
+	la    $t0, 8($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
 	lw    $t1, 4($sp)
 	sw    $t1, 0($t0)
-	la    $t0, _x
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t1, 4($t0)
-	sw    $t1, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $a0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	li    $v0, 1
-	syscall		#Write
-	la    $t0, _x
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t1, 4($t0)
-	sw    $t1, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	la    $t0, _x
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t1, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	addi  $t0, $t0, 1
-	sw    $t0, 0($t1)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	la    $t0, _x
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t1, 4($t0)
-	sw    $t1, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $a0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	li    $v0, 1
-	syscall		#Write
-	la    $t0, _x
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t1, 4($t0)
-	sw    $t1, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	la    $t0, _x
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t1, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	addi  $t0, $t0, 1
-	sw    $t0, 0($t1)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	la    $t0, _x
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t1, 4($t0)
-	sw    $t1, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $a0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	li    $v0, 1
-	syscall		#Write
-.L0:
 	li    $t0, 1
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	la    $t0, 12($sp)
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $t0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	lw    $t1, 4($sp)
+	sw    $t1, 0($t0)
+	li    $t0, 0
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	la    $t0, 16($sp)
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $t0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	lw    $t1, 4($sp)
+	sw    $t1, 0($t0)
+	la    $t0, 12($sp)
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $t0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	lw    $t0, 0($t0)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
 	beq   $t0, 0, .L1
-	la    $t0, _x
+	la    $t0, 12($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	lw    $t1, 4($t0)
-	sw    $t1, 0($sp)	#PUSH
+	lw    $t0, 0($t0)
+	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
+	lw    $t0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	beq   $t0, 0, .L1
 	li    $t0, 1
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	b     .L2
+.L1:
+	li    $t0, 0
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+.L2:
+	lw    $t0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	beq   $t0, 0, .L0
+	la    $t0, 8($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t1, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	addu  $t0, $t0, $t1
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	la    $t0, _x
+	la    $t0, 8($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	lw    $t1, 4($sp)
-	sw    $t1, 0($t0)
-	la    $t0, _x
+	lw    $t0, 0($t0)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	lw    $t1, 4($t0)
-	sw    $t1, 0($sp)	#PUSH
+	addi  $t0, $t0, 1
+	sw    $t0, 0($t1)
+.L0:
+	la    $t0, 8($sp)
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $t0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	lw    $t0, 0($t0)
+	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $a0, 4($sp)	#POP
 	addu  $sp, $sp, 4
 	li    $v0, 1
 	syscall		#Write
-	b     .L0
-.L1:
 	lw    $ra, 0($fp)	#load return address
 	move  $t0, $fp		#FP holds the address to which we need to restore SP
 	lw    $fp, -4($fp)	#restore FP

@@ -1,18 +1,16 @@
-
-int x;
-
 void main() {
+	int x;
+	bool a;
+	bool b;
 
-    //int x;
-    x = 5;
-    cout << x;
-    x++;
-    cout << x;
-    x++;
-    cout << x;
+    x = 1;
+	a = true;
+	b = false;
 
-    while(true) {
-        x = x + 1;
-        cout << x;
-    }
+
+	if(a && b) {
+		x++;
+	}
+
+	cout << x;
 }

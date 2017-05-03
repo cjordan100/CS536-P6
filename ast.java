@@ -1004,20 +1004,18 @@ class PostIncStmtNode extends StmtNode {
     }
  
     public void codeGen() {
+        myExp.genAddr(); // Pushes the address of my Exp onto stack
+
+        Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
 
         myExp.codeGen(); // Pushes the value of myExp onto stack
 
         Codegen.genPop(Codegen.T0); // Stores value of myExp into register T0
 
-        myExp.genAddr(); // Pushes the address of my Exp onto stack
-
-        Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
-
-        Codegen.generate("addi", Codegen.T0, Codegen.T0, "1"); // Performs addition operation
+        // Performs addition operation
+        Codegen.generate("addi", Codegen.T0, Codegen.T0, "1");
 
         Codegen.generateIndexed("sw", Codegen.T0, Codegen.T1, 0);
-
-        Codegen.genPush(Codegen.T0); // Pushes new value of myExp to stack
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1056,19 +1054,18 @@ class PostDecStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-		myExp.codeGen();
+        myExp.genAddr(); // Pushes the address of my Exp onto stack
 
-		// get the value from the top of the stack
-		Codegen.genPop(Codegen.T0);
+        Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
 
-        // store 1 in register $t0
-		Codegen.generate("li", Codegen.T1, "1");
+        myExp.codeGen(); // Pushes the value of myExp onto stack
 
-		// perform the operation
-		Codegen.generate("sub", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPop(Codegen.T0); // Stores value of myExp into register T0
 
-		// push result onto the stack
-		Codegen.genPush(Codegen.T0);
+        // Performs addition operation
+        Codegen.generate("sub", Codegen.T0, Codegen.T0, "1");
+
+        Codegen.generateIndexed("sw", Codegen.T0, Codegen.T1, 0);
     }
         
     public void unparse(PrintWriter p, int indent) {
@@ -1683,7 +1680,7 @@ class TrueNode extends ExpNode {
 	}
 
     public void codeGen() {
-        Codegen.generate("li", Codegen.T0, String.valueOf(1));
+        Codegen.generate("li", Codegen.T0, Codegen.TRUE);
         Codegen.genPush(Codegen.T0);
     }
         
@@ -1723,7 +1720,7 @@ class FalseNode extends ExpNode {
     }
  
     public void codeGen() {
-        Codegen.generate("li", Codegen.T0, String.valueOf(0));
+        Codegen.generate("li", Codegen.T0, Codegen.FALSE);
         Codegen.genPush(Codegen.T0);
     }
         
@@ -1815,17 +1812,17 @@ class IdNode extends ExpNode {
 
         Codegen.genPop(Codegen.T0); // Stores the address into T0
 
-        Codegen.generateIndexed("lw", Codegen.T1, Codegen.T0, 0); // Stores the value at address into T1
+        // Stores the value at address into $t1
+        Codegen.generateIndexed("lw", Codegen.T0, Codegen.T0, 0);
 
-        Codegen.genPush(Codegen.T1); // Pushes the value of the ID onto stack
-
+        Codegen.genPush(Codegen.T0); // Pushes the value of the ID onto stack
     }
            
 	public void genAddr() {
 		if(mySym.getOffset() == 0) // global
 			Codegen.generate("la", Codegen.T0, "_"+myStrVal);
 		else // local
-			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, mySym.getOffset());
+			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, -1*mySym.getOffset());
 		Codegen.genPush(Codegen.T0);
 	}
 
@@ -2063,17 +2060,20 @@ class AssignNode extends ExpNode {
     }
  
     public void codeGen() {
-
-        myExp.codeGen(); // evaluate the rhs expression. leaving the value on the stack
-
-        myLhs.genAddr(); // push the address of the lhs Id onto the stack
-
+		// evaluate the rhs expression. leaving the value on the stack
+        myExp.codeGen(); 
+		
+		// push the address of the lhs Id onto the stack and pop into $t0
+        myLhs.genAddr(); 
         Codegen.genPop(Codegen.T0);
+		
+		// Store the value of myExp into T1
+        Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
+		//Codegen.genPop(Codegen.T1);
 
-        Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); // Store the value of myExp into T1
-
-        Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0); // Store the value in T1 into address located in T0
-    }
+		// Store the value in T1 into address located in T0
+        Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0);   
+	}
 
 	public void genAddr() {
 
@@ -2271,13 +2271,17 @@ abstract class BinaryExpNode extends ExpNode {
 			myExp1.codeGen();
 			Codegen.genPop(Codegen.T0);
 			Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
-			Codegen.generate("sw", Codegen.T0, Codegen.TRUE);
+			
+			Codegen.generate("li", Codegen.T0, Codegen.TRUE);
+
 			Codegen.genPush(Codegen.T0);
 			Codegen.generate("b", trueLabel);
 
 			// else whole expression is false
 			Codegen.genLabel(falseLabel);
-			Codegen.generate("sw", Codegen.T0, Codegen.FALSE);
+
+			Codegen.generate("li", Codegen.T0, Codegen.FALSE);
+
 			Codegen.genPush(Codegen.T0);
 			Codegen.genLabel(trueLabel);
 		}
