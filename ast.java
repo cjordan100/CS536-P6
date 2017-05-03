@@ -196,14 +196,17 @@ class DeclListNode extends ASTnode {
             }
         }
         else {
-            int totalOffset = -8;
+            //int localOffset = 8;
+			int localsOffset = (myDecls.size() * 4);
             for (DeclNode node : myDecls) {
                 if (node instanceof VarDeclNode) {
-                    ((VarDeclNode)node).nameAnalysis(symTab, globalTab, totalOffset);
-                    totalOffset -= ((VarDeclNode)node).getSize();
-                } else {
-                    node.nameAnalysis(symTab);
+                    ((VarDeclNode)node).nameAnalysis(symTab, globalTab, localsOffset);
+                    //localOffset += ((VarDeclNode)node).getSize();
+                    localsOffset -= 4;
                 }
+				else {
+					node.nameAnalysis(symTab);
+				}
             }
         }
     }    
@@ -273,10 +276,13 @@ class FormalsListNode extends ASTnode {
      */
     public List<Type> nameAnalysis(SymTable symTab) {
         List<Type> typeList = new LinkedList<Type>();
+		int formalsOffset = (myFormals.size() * 4) + 8;
         for (FormalDeclNode node : myFormals) {
             SemSym sym = node.nameAnalysis(symTab);
             if (sym != null) {
                 typeList.add(sym.getType());
+				sym.setOffset(formalsOffset);
+				formalsOffset -= 4;
             }
         }
         return typeList;
@@ -428,6 +434,17 @@ class ExpListNode extends ASTnode {
             System.exit(-1);
         }
     }
+
+	public void codeGen() {
+		int i = 0;
+		for(ExpNode node : myExps) {
+			if(node instanceof IdNode)
+				((IdNode)node).codeGen(i);
+			else
+				node.codeGen();
+			i++;
+		}
+	}
     
     public void unparse(PrintWriter p, int indent) {
         Iterator<ExpNode> it = myExps.iterator();
@@ -628,7 +645,7 @@ class FnDeclNode extends DeclNode {
         }
         
         symTab.addScope();  // add a new scope for locals and params
-        
+       
         // process the formals
         List<Type> typeList = myFormalsList.nameAnalysis(symTab);
         if (sym != null) {
@@ -665,6 +682,8 @@ class FnDeclNode extends DeclNode {
 
     public void codeGen() {
 
+		Codegen.CurrFnSym = (FnSym)myId.sym();
+
 		// function entry
         if(myId.name().equals("main")) {
             Codegen.generate(".text");
@@ -681,24 +700,35 @@ class FnDeclNode extends DeclNode {
 
        Codegen.genPush(Codegen.RA); // push the return address
        Codegen.genPush(Codegen.FP); // push the control link
-       Codegen.generate("addu", Codegen.FP, Codegen.SP, "8");
        int localSize = ((FnSym)(myId.sym())).getLocalSize(); // size of local decls
+       int formalSize = ((FnSym)(myId.sym())).getFormalSize(); // size of local decls
        if (localSize > 0)
            Codegen.generate("subu", Codegen.SP, Codegen.SP, String.valueOf(localSize));
+       Codegen.generate("addu", Codegen.FP, Codegen.SP, String.valueOf(localSize+8));
 
        // function body
        myBody.codeGen();
 
 	   // function exit
 	   Codegen.generateIndexed("lw", Codegen.RA, Codegen.FP, 0, "load return address");
-	   Codegen.generateWithComment("move", "FP holds the address to which we need to restore SP", Codegen.T0, Codegen.FP);
+	   Codegen.generateWithComment("move", "FP has addr to restore SP", Codegen.T0, Codegen.FP);
+	   if(formalSize != 0)
+			Codegen.generate("addu", Codegen.T0, Codegen.T0, String.valueOf(formalSize));
 	   Codegen.generateIndexed("lw", Codegen.FP, Codegen.FP, -4, "restore FP");
-	   Codegen.generateWithComment("move", "restore SP", Codegen.SP, Codegen.FP);
-	   //Codegen.generateWithComment("jr", "return", Codegen.RA);
+	   Codegen.generateWithComment("move", "restore SP", Codegen.SP, Codegen.T0);
+	   
+	   
 
 	   // for spim
-	   Codegen.generate("li", Codegen.V0, "10");
-	   Codegen.generate("syscall");
+	   if(myId.name().equals("main")) {
+	   		Codegen.generate("li", Codegen.V0, "10");
+	   		Codegen.generate("syscall");
+	   }
+	   else {
+	   		Codegen.generateWithComment("jr", "return", Codegen.RA);
+	   }
+
+		Codegen.CurrFnSym = null;
    }
 
     public IdNode getId() {
@@ -1004,7 +1034,7 @@ class PostIncStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-        myExp.genAddr(); // Pushes the address of my Exp onto stack
+        ((IdNode)myExp).genAddr(0); // Pushes the address of my Exp onto stack
 
         Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
 
@@ -1054,7 +1084,7 @@ class PostDecStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-        myExp.genAddr(); // Pushes the address of my Exp onto stack
+        ((IdNode)myExp).genAddr(0); // Pushes the address of my Exp onto stack
 
         Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
 
@@ -1118,7 +1148,7 @@ class ReadStmtNode extends StmtNode {
 		Codegen.generateWithComment("syscall", "Read");
 		Codegen.genPush(Codegen.V0);
 
-		myExp.genAddr(); // push the address of the Id onto the stack
+		((IdNode)myExp).genAddr(0); // push the address of the Id onto the stack
 		Codegen.genPop(Codegen.T0);
 
 		// store the value into the address
@@ -1461,7 +1491,7 @@ class CallStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-
+		myCall.codeGen();
     }
     
     public void unparse(PrintWriter p, int indent) {
@@ -1517,7 +1547,17 @@ class ReturnStmtNode extends StmtNode {
     }
  
     public void codeGen() {
+		if(myExp != null) {
+			myExp.codeGen(); // evaluate the return exp, leaving the value on the stack
+			Codegen.genPop(Codegen.V0); // pop that value into reg V0
+		}
 
+		// function exit
+	   	//Codegen.generateIndexed("lw", Codegen.RA, Codegen.FP, 0, "load return address");
+	   	//Codegen.generateWithComment("move", "FP holds the address to which we need to restore SP", Codegen.T0, Codegen.FP);
+	   	//Codegen.generateIndexed("lw", Codegen.FP, Codegen.FP, -4, "restore FP");
+	   	//Codegen.generateWithComment("move", "restore SP", Codegen.SP, Codegen.FP);
+	    //Codegen.generateWithComment("jr", "return", Codegen.RA);
     }
     
     public void unparse(PrintWriter p, int indent) {
@@ -1546,7 +1586,6 @@ abstract class ExpNode extends ASTnode {
     
     abstract public Type typeCheck();
     abstract public void codeGen();
-    abstract public void genAddr();
     abstract public int lineNum();
     abstract public int charNum();
 }
@@ -1806,9 +1845,20 @@ class IdNode extends ExpNode {
         }
         return null;
     }
+
+	public void codeGen(int i) {
+        genAddr(i); // Pushes the address of ID onto the stack
+
+        Codegen.genPop(Codegen.T0); // Stores the address into T0
+
+        // Stores the value at address into $t1
+        Codegen.generateIndexed("lw", Codegen.T0, Codegen.T0, 0);
+
+        Codegen.genPush(Codegen.T0); // Pushes the value of the ID onto stack
+	}
  
     public void codeGen() {
-        genAddr(); // Pushes the address of ID onto the stack
+        genAddr(0); // Pushes the address of ID onto the stack
 
         Codegen.genPop(Codegen.T0); // Stores the address into T0
 
@@ -1818,11 +1868,13 @@ class IdNode extends ExpNode {
         Codegen.genPush(Codegen.T0); // Pushes the value of the ID onto stack
     }
            
-	public void genAddr() {
+	public void genAddr(int i) {
 		if(mySym.getOffset() == 0) // global
 			Codegen.generate("la", Codegen.T0, "_"+myStrVal);
+		else if(mySym.getOffset() > Codegen.CurrFnSym.getLocalSize()) // formal
+			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, mySym.getOffset());
 		else // local
-			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, -1*mySym.getOffset());
+			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, mySym.getOffset() + (4*i));
 		Codegen.genPush(Codegen.T0);
 	}
 
@@ -1832,6 +1884,10 @@ class IdNode extends ExpNode {
             p.print("(" + mySym + ")");
         }
     }
+
+	public void callCodeGen() {
+		Codegen.generate("jal", "_"+myStrVal);
+	}
 
     private int myLineNum;
     private int myCharNum;
@@ -2063,13 +2119,13 @@ class AssignNode extends ExpNode {
 		// evaluate the rhs expression. leaving the value on the stack
         myExp.codeGen(); 
 		
-		// push the address of the lhs Id onto the stack and pop into $t0
-        myLhs.genAddr(); 
-        Codegen.genPop(Codegen.T0);
-		
 		// Store the value of myExp into T1
-        Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
-		//Codegen.genPop(Codegen.T1);
+        //Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
+		Codegen.genPop(Codegen.T1);
+
+		// push the address of the lhs Id onto the stack and pop into $t0
+        ((IdNode)myLhs).genAddr(0); 
+        Codegen.genPop(Codegen.T0);
 
 		// Store the value in T1 into address located in T0
         Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0);   
@@ -2157,7 +2213,13 @@ class CallExpNode extends ExpNode {
     }
  
     public void codeGen() {
-
+		if(myExpList != null)
+			myExpList.codeGen(); // evaluate each param, pushing the values onto the stack
+		myId.callCodeGen(); // jump and link, return addr in RA
+		if(!((FnSym)(myId.sym())).getReturnType().isVoidType())
+			Codegen.genPush(Codegen.V0); // push return value onto the stack
+//		if(myExpList != null) // unalloc params
+//        	Codegen.generate("addu", Codegen.SP, Codegen.SP, myExpList.size()*4);
     }
         
 	public void genAddr() {

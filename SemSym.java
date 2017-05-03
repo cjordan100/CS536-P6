@@ -76,6 +76,10 @@ class FnSym extends SemSym {
         this.formalSize = formalSize;
     }
 
+	public int getFormalSize() {
+		return this.formalSize;
+	}
+
     public String toString() {
         // make list of formals
         String str = "";

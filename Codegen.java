@@ -47,6 +47,7 @@ public class Codegen {
     // for generating labels
     private static int currLabel = 0;
 
+	public static FnSym CurrFnSym = null;
 
     // **********************************************************************
     // **********************************************************************
