@@ -1,37 +1,20 @@
-
-//int bar() {
-//	int x;
-//	x = 1;
-//	return x;
-//}
-
-//int foo() {
-//	return bar();
-//}
-
-bool trueFunc() {
-	return true;
-}
-
-bool falseFunc() {
-	return false;
-}
+int glob;
 
 void main() {
+	int x;
+	int y;
+	int z;
 	int a;
-	bool x;
-	bool y;
+ 
+	bool b;
 
-	a = 2;
+	x = 1;
 
-	//x = falseFunc();
-	//y = false;
+    cin >> glob;
 
+	if(glob > 10) {
+		x++;
+	}
 
-	//if(!x || !falseFunc()) {
-	//	a++;
-	//}
-
-
-	cout << a + -4;
+	cout << x;
 }

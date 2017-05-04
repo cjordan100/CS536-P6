@@ -652,11 +652,9 @@ class FnDeclNode extends DeclNode {
         // This line calculates the size of the formals in the function
         // and stores the value in the sym for the function
         sym.setFormalSize(typeList.size() * 4);  
-//        System.out.println(typeList.size() * 4);
 
         // Sets the total size of the local varibales for the function
         sym.setLocalSize(myBody.getSize());
-//        System.out.println(myBody.getSize());
 
         try {
             symTab.removeScope();  // exit scope
@@ -687,7 +685,7 @@ class FnDeclNode extends DeclNode {
             Codegen.generateLabeled("main", "", "");
 
 			// for spim
-            //Codegen.generateLabeled("__start", "", "");
+            Codegen.generateLabeled("__start", "", "");
         }
          else {
             Codegen.generate(".text");
@@ -1144,7 +1142,6 @@ class ReadStmtNode extends StmtNode {
     public void codeGen() {
 		Codegen.generate("li", Codegen.V0, 5);
 		Codegen.generateWithComment("syscall", "Read");
-		Codegen.genPush(Codegen.V0);
 
 		myExp.genAddr(); // push the address of the Id onto the stack
 		Codegen.genPop(Codegen.T0);
@@ -1275,7 +1272,6 @@ class IfStmtNode extends StmtNode {
 		String falseLabel = Codegen.nextLabel();
 		myExp.codeGen();
 		Codegen.genPop(Codegen.T0);
-		//System.out.println(Codegen.CurrFnSym.getStackSize()-2);
 		Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
 		myStmtList.codeGen();
 		Codegen.genLabel(falseLabel);
@@ -2333,7 +2329,6 @@ abstract class BinaryExpNode extends ExpNode {
 
 		if(this instanceof AndNode) {
 			String falseLabel = Codegen.nextLabel();
-			String trueLabel = Codegen.nextLabel();
 
 			// (1) evalute left operand
 			myExp1.codeGen();
@@ -2345,22 +2340,11 @@ abstract class BinaryExpNode extends ExpNode {
 			Codegen.genPop(Codegen.T0);
 			Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
 			
-			Codegen.generate("li", Codegen.T0, Codegen.TRUE);
-
-			Codegen.genPush(Codegen.T0);
-			Codegen.generate("b", trueLabel);
-
 			// else whole expression is false
 			Codegen.genLabel(falseLabel);
 
-			Codegen.generate("li", Codegen.T0, Codegen.FALSE);
-
 			Codegen.genPush(Codegen.T0);
-			Codegen.genLabel(trueLabel);
 
-
-			Codegen.CurrFnSym.decStackSize(); // this is to account for the uneven push to pop
-		                                      // ratio in this block
 		}
 
 		else if(this instanceof OrNode) {
