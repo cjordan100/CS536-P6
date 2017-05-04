@@ -1,6 +1,3 @@
-	.data
-	.align 2
-_glob:	.space 4
 	.text
 	.globl main
 main:	
@@ -9,12 +6,12 @@ __start:
 	subu  $sp, $sp, 4
 	sw    $fp, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
-	subu  $sp, $sp, 20
-	addu  $fp, $sp, 28
+	subu  $sp, $sp, 4
+	addu  $fp, $sp, 12
 	li    $t0, 1
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
-	la    $t0, 24($sp)
+	la    $t0, 8($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
@@ -22,41 +19,34 @@ __start:
 	lw    $t1, 4($sp)	#POP
 	addu  $sp, $sp, 4
 	sw    $t1, 0($t0)
-	li    $v0, 5
-	syscall		#Read
-	la    $t0, _glob
+	.data
+.L2:	.asciiz "A"
+	.text
+	la    $t0, .L2
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	sw    $v0, 0($t0)
-	li    $t0, 10
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	la    $t0, _glob
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t0, 0($t0)
+	.data
+.L3:	.asciiz "a"
+	.text
+	la    $t0, .L3
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
 	lw    $t1, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	sgt   $t0, $t0, $t1
+	sne   $t0, $t0, $t1
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
 	beq   $t0, 0, .L1
-	la    $t0, 20($sp)
+	la    $t0, 4($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t1, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	la    $t0, 20($sp)
+	la    $t0, 4($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
@@ -69,7 +59,7 @@ __start:
 	addi  $t0, $t0, 1
 	sw    $t0, 0($t1)
 .L1:
-	la    $t0, 20($sp)
+	la    $t0, 4($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP

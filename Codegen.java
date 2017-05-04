@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.*;
 
 // **********************************************************************
 // The Codegen class provides constants and operations useful for code
@@ -50,6 +51,8 @@ public class Codegen {
 
 	public static FnSym CurrFnSym = null;
 	public static String FnExitLabel = null;
+	public static Map<String, String> StringLabelMap = new HashMap<String, String>();
+
 
     // **********************************************************************
     // **********************************************************************

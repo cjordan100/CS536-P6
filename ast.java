@@ -1655,12 +1655,15 @@ class StringLitNode extends ExpNode {
     }
  
     public void codeGen() {
-        Codegen.generate(".data");
-		String label = Codegen.nextLabel();
-        Codegen.generateLabeled(label, ".asciiz ", "", myStrVal);
-
-        Codegen.generate(".text");
-        Codegen.generate("la", Codegen.T0, label);
+		String label = Codegen.StringLabelMap.get(myStrVal);
+		if(label == null) {
+        	Codegen.generate(".data");
+			label = Codegen.nextLabel();
+			Codegen.StringLabelMap.put(myStrVal, label);
+        	Codegen.generateLabeled(label, ".asciiz ", "", myStrVal);
+        	Codegen.generate(".text");
+		}
+       	Codegen.generate("la", Codegen.T0, label);
 		Codegen.genPush(Codegen.T0);
     }
         
@@ -2382,6 +2385,13 @@ abstract class BinaryExpNode extends ExpNode {
 			Codegen.genPop(Codegen.T1);
 
 			// (3) perform the operation
+			String opcode = opCode();
+
+			/*if(opcode.equals("seq") && (myExp1 instanceof StringLitNode)) {
+				Codegen.generateIndexed("lw", Codegen.T0, Codegen.T0, 0);
+				Codegen.generateIndexed("lw", Codegen.T1, Codegen.T1, 0);
+			}*/
+
 			Codegen.generate(opCode(), Codegen.T0, Codegen.T0, Codegen.T1);
 
 			// (4) push result onto the stack
