@@ -1,17 +1,37 @@
-int foo(int x, int y, int z) {
-	z++;
-	return z;
+
+//int bar() {
+//	int x;
+//	x = 1;
+//	return x;
+//}
+
+//int foo() {
+//	return bar();
+//}
+
+bool trueFunc() {
+	return true;
+}
+
+bool falseFunc() {
+	return false;
 }
 
 void main() {
-	int x;
-	int y;
-	int z;
 	int a;
-    x = 1;
-    y = 2;
-    z = 3;
-	
-	a = foo(x,y,z);
-	cout << a;
+	bool x;
+	bool y;
+
+	a = 2;
+
+	//x = falseFunc();
+	//y = false;
+
+
+	//if(!x || !falseFunc()) {
+	//	a++;
+	//}
+
+
+	cout << a + -4;
 }

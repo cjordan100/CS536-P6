@@ -41,6 +41,7 @@ class FnSym extends SemSym {
     private List<Type> paramTypes;
     int localSize;
     int formalSize;
+	int stackSize;
 
     public FnSym(Type type, int numparams) {
         super(new FnType());
@@ -78,6 +79,19 @@ class FnSym extends SemSym {
 
 	public int getFormalSize() {
 		return this.formalSize;
+	}
+
+	public void incStackSize() {
+		this.stackSize++;
+	}
+
+	public void decStackSize() {
+		//if(this.stackSize > 0)
+			this.stackSize--;
+	}
+
+	public int getStackSize() {
+		return this.stackSize;
 	}
 
     public String toString() {

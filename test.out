@@ -1,40 +1,38 @@
 	.text
-_foo:	
+_trueFunc:	
 	sw    $ra, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	sw    $fp, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	addu  $fp, $sp, 8
-	la    $t0, 12($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t1, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	la    $t0, 12($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t0, 0($t0)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	addi  $t0, $t0, 1
-	sw    $t0, 0($t1)
-	la    $t0, 12($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t0, 0($t0)
+	li    $t0, 1
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $v0, 4($sp)	#POP
 	addu  $sp, $sp, 4
+	j     .L0
+.L0:
 	lw    $ra, 0($fp)	#load return address
 	move  $t0, $fp		#FP has addr to restore SP
-	addu  $t0, $t0, 12
+	lw    $fp, -4($fp)	#restore FP
+	move  $sp, $t0		#restore SP
+	jr    $ra		#return
+	.text
+_falseFunc:	
+	sw    $ra, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	sw    $fp, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	addu  $fp, $sp, 8
+	li    $t0, 0
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $v0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	j     .L1
+.L1:
+	lw    $ra, 0($fp)	#load return address
+	move  $t0, $fp		#FP has addr to restore SP
 	lw    $fp, -4($fp)	#restore FP
 	move  $sp, $t0		#restore SP
 	jr    $ra		#return
@@ -45,47 +43,25 @@ main:
 	subu  $sp, $sp, 4
 	sw    $fp, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
-	subu  $sp, $sp, 16
-	addu  $fp, $sp, 24
-	li    $t0, 1
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t1, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	la    $t0, 16($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	sw    $t1, 0($t0)
+	subu  $sp, $sp, 12
+	addu  $fp, $sp, 20
 	li    $t0, 2
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
-	lw    $t1, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	la    $t0, 12($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	sw    $t1, 0($t0)
-	li    $t0, 3
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t1, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	la    $t0, 8($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	sw    $t1, 0($t0)
 	la    $t0, 16($sp)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	lw    $t0, 0($t0)
+	lw    $t1, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	sw    $t1, 0($t0)
+	li    $t0, 4
+	sw    $t0, 0($sp)	#PUSH
+	subu  $sp, $sp, 4
+	lw    $t0, 4($sp)	#POP
+	addu  $sp, $sp, 4
+	neg   $t0, $t0
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	la    $t0, 16($sp)
@@ -96,37 +72,18 @@ main:
 	lw    $t0, 0($t0)
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
-	la    $t0, 16($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
 	lw    $t0, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	lw    $t0, 0($t0)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	jal   _foo
-	sw    $v0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
 	lw    $t1, 4($sp)	#POP
 	addu  $sp, $sp, 4
-	la    $t0, 4($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	sw    $t1, 0($t0)
-	la    $t0, 4($sp)
-	sw    $t0, 0($sp)	#PUSH
-	subu  $sp, $sp, 4
-	lw    $t0, 4($sp)	#POP
-	addu  $sp, $sp, 4
-	lw    $t0, 0($t0)
+	addu  $t0, $t0, $t1
 	sw    $t0, 0($sp)	#PUSH
 	subu  $sp, $sp, 4
 	lw    $a0, 4($sp)	#POP
 	addu  $sp, $sp, 4
 	li    $v0, 1
 	syscall		#Write
+.L2:
 	lw    $ra, 0($fp)	#load return address
 	move  $t0, $fp		#FP has addr to restore SP
 	lw    $fp, -4($fp)	#restore FP

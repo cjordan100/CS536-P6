@@ -38,6 +38,7 @@ public class Codegen {
     public static final String A0 = "$a0";
     public static final String T0 = "$t0";
     public static final String T1 = "$t1";
+    public static final String T3 = "$t3";
 
 
     // for pretty printing generated code
@@ -48,6 +49,7 @@ public class Codegen {
     private static int currLabel = 0;
 
 	public static FnSym CurrFnSym = null;
+	public static String FnExitLabel = null;
 
     // **********************************************************************
     // **********************************************************************
@@ -216,6 +218,7 @@ public class Codegen {
     public static void genPush(String s) {
         generateIndexed("sw", s, SP, 0, "PUSH");
         generate("subu", SP, SP, 4);
+		CurrFnSym.incStackSize();
     }
 
     // **********************************************************************
@@ -225,6 +228,7 @@ public class Codegen {
     public static void genPop(String s) {
         generateIndexed("lw", s, SP, 4, "POP");
         generate("addu", SP, SP, 4);
+		CurrFnSym.decStackSize();
     }
 
     // **********************************************************************

@@ -436,13 +436,8 @@ class ExpListNode extends ASTnode {
     }
 
 	public void codeGen() {
-		int i = 0;
 		for(ExpNode node : myExps) {
-			if(node instanceof IdNode)
-				((IdNode)node).codeGen(i);
-			else
-				node.codeGen();
-			i++;
+			node.codeGen();
 		}
 	}
     
@@ -682,6 +677,7 @@ class FnDeclNode extends DeclNode {
 
     public void codeGen() {
 
+	   Codegen.FnExitLabel = Codegen.nextLabel();
 		Codegen.CurrFnSym = (FnSym)myId.sym();
 
 		// function entry
@@ -710,6 +706,7 @@ class FnDeclNode extends DeclNode {
        myBody.codeGen();
 
 	   // function exit
+	   Codegen.genLabel(Codegen.FnExitLabel);
 	   Codegen.generateIndexed("lw", Codegen.RA, Codegen.FP, 0, "load return address");
 	   Codegen.generateWithComment("move", "FP has addr to restore SP", Codegen.T0, Codegen.FP);
 	   if(formalSize != 0)
@@ -729,6 +726,7 @@ class FnDeclNode extends DeclNode {
 	   }
 
 		Codegen.CurrFnSym = null;
+		Codegen.FnExitLabel = null;
    }
 
     public IdNode getId() {
@@ -849,7 +847,7 @@ class StructDeclNode extends DeclNode {
         if (!badDecl) {
             try {   // add entry to symbol table
                 StructDefSym sym = new StructDefSym(structSymTab);
-                sym.setSize(myDeclList.getSize());  // This stores the size of the struct in the sym!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                sym.setSize(myDeclList.getSize());  // This stores the size of the struct in sym
                 symTab.addDecl(name, sym);
                 myId.link(sym);
             } catch (DuplicateSymException ex) {
@@ -1034,7 +1032,7 @@ class PostIncStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-        ((IdNode)myExp).genAddr(0); // Pushes the address of my Exp onto stack
+        myExp.genAddr(); // Pushes the address of my Exp onto stack
 
         Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
 
@@ -1084,7 +1082,7 @@ class PostDecStmtNode extends StmtNode {
     }
  
     public void codeGen() {
-        ((IdNode)myExp).genAddr(0); // Pushes the address of my Exp onto stack
+        myExp.genAddr(); // Pushes the address of my Exp onto stack
 
         Codegen.genPop(Codegen.T1); // Stores address of myExp into register T1
 
@@ -1148,7 +1146,7 @@ class ReadStmtNode extends StmtNode {
 		Codegen.generateWithComment("syscall", "Read");
 		Codegen.genPush(Codegen.V0);
 
-		((IdNode)myExp).genAddr(0); // push the address of the Id onto the stack
+		myExp.genAddr(); // push the address of the Id onto the stack
 		Codegen.genPop(Codegen.T0);
 
 		// store the value into the address
@@ -1277,6 +1275,7 @@ class IfStmtNode extends StmtNode {
 		String falseLabel = Codegen.nextLabel();
 		myExp.codeGen();
 		Codegen.genPop(Codegen.T0);
+		//System.out.println(Codegen.CurrFnSym.getStackSize()-2);
 		Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
 		myStmtList.codeGen();
 		Codegen.genLabel(falseLabel);
@@ -1551,13 +1550,7 @@ class ReturnStmtNode extends StmtNode {
 			myExp.codeGen(); // evaluate the return exp, leaving the value on the stack
 			Codegen.genPop(Codegen.V0); // pop that value into reg V0
 		}
-
-		// function exit
-	   	//Codegen.generateIndexed("lw", Codegen.RA, Codegen.FP, 0, "load return address");
-	   	//Codegen.generateWithComment("move", "FP holds the address to which we need to restore SP", Codegen.T0, Codegen.FP);
-	   	//Codegen.generateIndexed("lw", Codegen.FP, Codegen.FP, -4, "restore FP");
-	   	//Codegen.generateWithComment("move", "restore SP", Codegen.SP, Codegen.FP);
-	    //Codegen.generateWithComment("jr", "return", Codegen.RA);
+		Codegen.generate("j", Codegen.FnExitLabel);
     }
     
     public void unparse(PrintWriter p, int indent) {
@@ -1586,6 +1579,7 @@ abstract class ExpNode extends ASTnode {
     
     abstract public Type typeCheck();
     abstract public void codeGen();
+    abstract public void genAddr();
     abstract public int lineNum();
     abstract public int charNum();
 }
@@ -1846,8 +1840,8 @@ class IdNode extends ExpNode {
         return null;
     }
 
-	public void codeGen(int i) {
-        genAddr(i); // Pushes the address of ID onto the stack
+	public void codeGen() {
+        genAddr(); // Pushes the address of ID onto the stack
 
         Codegen.genPop(Codegen.T0); // Stores the address into T0
 
@@ -1857,24 +1851,19 @@ class IdNode extends ExpNode {
         Codegen.genPush(Codegen.T0); // Pushes the value of the ID onto stack
 	}
  
-    public void codeGen() {
-        genAddr(0); // Pushes the address of ID onto the stack
-
-        Codegen.genPop(Codegen.T0); // Stores the address into T0
-
-        // Stores the value at address into $t1
-        Codegen.generateIndexed("lw", Codegen.T0, Codegen.T0, 0);
-
-        Codegen.genPush(Codegen.T0); // Pushes the value of the ID onto stack
-    }
-           
-	public void genAddr(int i) {
+	public void genAddr() {
 		if(mySym.getOffset() == 0) // global
 			Codegen.generate("la", Codegen.T0, "_"+myStrVal);
 		else if(mySym.getOffset() > Codegen.CurrFnSym.getLocalSize()) // formal
 			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, mySym.getOffset());
-		else // local
-			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, mySym.getOffset() + (4*i));
+		else {// local
+			//System.out.println(myStrVal);
+			//System.out.println(mySym.getOffset());
+			//System.out.println(Codegen.CurrFnSym.getStackSize()-2);
+			int offset = (4*(Codegen.CurrFnSym.getStackSize()-2));
+			//System.out.println(mySym.getOffset() + offset);
+			Codegen.generateIndexed("la", Codegen.T0, Codegen.SP, mySym.getOffset() + offset);
+		}
 		Codegen.genPush(Codegen.T0);
 	}
 
@@ -2121,11 +2110,11 @@ class AssignNode extends ExpNode {
 		
 		// Store the value of myExp into T1
         //Codegen.generateIndexed("lw", Codegen.T1, Codegen.SP, 4); 
-		Codegen.genPop(Codegen.T1);
 
 		// push the address of the lhs Id onto the stack and pop into $t0
-        ((IdNode)myLhs).genAddr(0); 
+        myLhs.genAddr(); 
         Codegen.genPop(Codegen.T0);
+		Codegen.genPop(Codegen.T1);
 
 		// Store the value in T1 into address located in T0
         Codegen.generateIndexed("sw", Codegen.T1, Codegen.T0, 0);   
@@ -2272,8 +2261,30 @@ abstract class UnaryExpNode extends ExpNode {
 
 	public void codeGen() {
 
+		if(this instanceof NotNode) {
+			String label = Codegen.nextLabel();
+			String label2 = Codegen.nextLabel();
+			myExp.codeGen();
+			Codegen.genPop(Codegen.T0);
+
+			Codegen.generate("beq", Codegen.T0, Codegen.TRUE, label);
+			Codegen.generate("addu", Codegen.T0, Codegen.T0, Codegen.TRUE);
+			Codegen.generate("b", label2);
+			Codegen.genLabel(label);
+			Codegen.generate("subu", Codegen.T0, Codegen.T0, Codegen.TRUE);
+			Codegen.genLabel(label2);
+
+			Codegen.genPush(Codegen.T0);
+		}
+		else if(this instanceof UnaryMinusNode) {
+			myExp.codeGen();
+			Codegen.genPop(Codegen.T0);
+			Codegen.generate("neg", Codegen.T0, Codegen.T0);
+			Codegen.genPush(Codegen.T0);
+		}
+
 	}
-    
+
 	public void genAddr() {
 
 	}
@@ -2330,7 +2341,7 @@ abstract class BinaryExpNode extends ExpNode {
 			Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
 
 			// (2) if true evalute right operand = whole expression's value
-			myExp1.codeGen();
+			myExp2.codeGen();
 			Codegen.genPop(Codegen.T0);
 			Codegen.generate("beq", Codegen.T0, Codegen.FALSE, falseLabel);
 			
@@ -2346,10 +2357,13 @@ abstract class BinaryExpNode extends ExpNode {
 
 			Codegen.genPush(Codegen.T0);
 			Codegen.genLabel(trueLabel);
+
+
+			Codegen.CurrFnSym.decStackSize(); // this is to account for the uneven push to pop
+		                                      // ratio in this block
 		}
 
 		else if(this instanceof OrNode) {
-			String falseLabel = Codegen.nextLabel();
 			String trueLabel = Codegen.nextLabel();
 
 			// (1) evalute left operand
@@ -2358,18 +2372,14 @@ abstract class BinaryExpNode extends ExpNode {
 			Codegen.generate("beq", Codegen.T0, Codegen.TRUE, trueLabel);
 
 			// (2) if false evalute right operand = whole expression's value
-			myExp1.codeGen();
+			myExp2.codeGen();
 			Codegen.genPop(Codegen.T0);
 			Codegen.generate("beq", Codegen.T0, Codegen.TRUE, trueLabel);
-			Codegen.generate("sw", Codegen.T0, Codegen.FALSE);
-			Codegen.genPush(Codegen.T0);
-			Codegen.generate("b", falseLabel);
 
 			// else whole expression is true
 			Codegen.genLabel(trueLabel);
-			Codegen.generate("sw", Codegen.T0, Codegen.TRUE);
+
 			Codegen.genPush(Codegen.T0);
-			Codegen.genLabel(falseLabel);
 		}
 
 		/*
@@ -2377,14 +2387,15 @@ abstract class BinaryExpNode extends ExpNode {
 		 */
 
 		else {
-			// (1) evaluate the operands leaving the values on the stack
-			myExp1.codeGen();
+			// (1) evaluate operands, push onto stack
 			myExp2.codeGen();
+			myExp1.codeGen();
+			//myExp2.codeGen();
 
 			// (2) generate code to opo the operand values off the stack
 			// into registor T0 and T1, right operand is on the top of the stack
-			Codegen.genPop(Codegen.T1);
 			Codegen.genPop(Codegen.T0);
+			Codegen.genPop(Codegen.T1);
 
 			// (3) perform the operation
 			Codegen.generate(opCode(), Codegen.T0, Codegen.T0, Codegen.T1);
